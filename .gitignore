@@ -1,0 +1,38 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+build/
+dist/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# ===== 运行产物（抓包 / 日志 / 输出） =====
+*.log
+*.pcap
+*.pcapng
+*.cap
+out/
+output/
+
+# ===== 凭证与本机私有配置 =====
+.env
+.env.*
+*.key
+*.pem
+credentials.json
+
+# ===== IDE / 编辑器 =====
+.arts/
+.idea/
+.vscode/
+*.swp
+*~
+
+# ===== 系统 =====
+.DS_Store
+Thumbs.db

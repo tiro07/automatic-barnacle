@@ -312,8 +312,8 @@ def get_ip_information(ip: str | None = None, AutoPolling: bool = True ,max_req_
 # 手写的查询自己的API
 # 搞成调用接口叭
 
-@ttl_cache(maxsize=128, ttl=60)
-def What_Is_My_IP (search: list | None = None) -> dict :
+@ttl_cache()
+def What_Is_IP (search: str | list | None = None) -> dict :
     """
     (除特殊标注,默认为 str ) // important
 
@@ -322,7 +322,7 @@ def What_Is_My_IP (search: list | None = None) -> dict :
     Args:
 
     {
-        ret : int // 200为正常
+        ret // 200为正常    :    int
 
         data : 
         {
@@ -339,7 +339,7 @@ def What_Is_My_IP (search: list | None = None) -> dict :
             isp // 运营商
             lng // 城市中心-经度
             lat // 城市中心-纬度
-            long_ip : int // longip
+            long_ip // longip    :    int
             big_area // 国内大区划分
 
             // VIP 字段
@@ -349,19 +349,21 @@ def What_Is_My_IP (search: list | None = None) -> dict :
 
         },
     
-        qt : int // 查询时间-秒
+        qt // 查询时间-秒    :    int
     }
     """
 
     if search is None :
         data = get_ip_information()
 
-    elif len(search) == 1 :
+    elif len(search) == 1 or type(search) == 'str':
         data = get_ip_information(search[0])
-    elif len(search) == 3 :
-        data = get_ip_information(search[0], search[1], search[2])
+
+    elif len(search) == 3 and type(search) == 'list':
+        data = get_ip_information(search[0], bool(search[1]), int(search[2]))
+
     else:
-        raise TypeError(f'your {search} is must the formate of {What_Is_My_IP.__doc__}')
+        raise TypeError(f'your {search} is must the formate of {What_Is_IP.__doc__}')
 
     return data
 # ---
@@ -369,8 +371,14 @@ def What_Is_My_IP (search: list | None = None) -> dict :
 
 
 if __name__ == '__main__' :
-    print(What_Is_My_IP()['data'])
-    print(What_Is_My_IP()['data']['ip'])
-    print(What_Is_My_IP()['data']['city'])
-    print(What_Is_My_IP()['data']['long_ip'])
+    pass
+
+
+
+
+
+    # print(What_Is_IP()['data'])
+    # print(What_Is_IP()['data']['ip'])
+    # print(What_Is_IP()['data']['city'])
+    # print(What_Is_IP()['data']['long_ip'])
     # 成功,就不测试缓存了 !! ><
