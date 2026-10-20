@@ -3,6 +3,7 @@
 import gzip
 import hashlib
 import json
+import os
 import random
 import ssl
 import subprocess
@@ -14,6 +15,26 @@ import zlib
 from Id import video_id
 from ipsearch import What_Is_IP
 from secret_key import cookie_sendheart, tid, userId
+
+
+
+
+# 本机 Python3.12 的 OpenSSL 默认 CA 路径 /storage/Users/currentUser/usr/local/ssl/cert.pem 不存在,
+# create_default_context() 里没有信任根,HTTPS 一律 CERTIFICATE_VERIFY_FAILED (unable to get local issuer certificate)
+# 改用本机已有 CA 包:优先 certifi(有则用),否则复用 harmonybrew 的 openssl@3 证书集,不新装任何东西
+CA_BUNDLES = [
+    os.environ.get('SSL_CERT_FILE') ,
+    '/storage/Users/currentUser/.harmonybrew/etc/openssl@3/cert.pem' ,
+]
+
+try :
+    import certifi ; CA_BUNDLES.insert(0,certifi.where())
+except ImportError :
+    pass
+
+# 或者用 verify = False
+
+
 
 # 目标 : 自动化启动sendoption.sh并保持通道
 
@@ -177,10 +198,18 @@ def send_post_of_heartBeat(url:str , payload = None , cookies = None , headers :
 
 
     # 处理 response
+    # SSL
+
     ctx = ssl.create_default_context()
     if not verify :
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
+    else:
+        # 补挂本机已有 CA 包:3.12 解释器默认信任库为空,不补会 CERTIFICATE_VERIFY_FAILED
+        for cafile in CA_BUNDLES :
+            if cafile and os.path.isfile(cafile) :
+                ctx.load_verify_locations(cafile = cafile)
+                break
 
     try :
         resp = urllib.request.urlopen(req , timeout = timeout , context = ctx)
