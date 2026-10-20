@@ -1,17 +1,19 @@
-import json, hashlib, random, time
-import subprocess
+# 心跳预检与发送
+
 import gzip
+import hashlib
 import json
+import random
 import ssl
+import subprocess
+import time
 import urllib.error
 import urllib.request
 import zlib
 
+from Id import video_id
 from ipsearch import What_Is_IP
-
-What_Is_IP(search="ip")
-
-
+from secret_key import cookie_sendheart, tid, userId
 
 # 目标 : 自动化启动sendoption.sh并保持通道
 
@@ -21,13 +23,15 @@ def run_init () :
     """
 
     subprocess.run(["sh","./sendoption.sh"])
+# ---
 
 
 
 
-# 发送heartbeat
 
 
+# 放不变的HEADERS
+# 少content-length，最后算 或者……干脆不算!!
 HEADERS = {
     'User-Agent' : 'Mozilla/5.0 (PC; OpenHarmony 7.0; Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 ArkWeb/7.0.0.105 HuaweiBrowser/6.1.8.301',
 
@@ -45,66 +49,71 @@ HEADERS = {
     'origin' : 'https://www.icourse163.org',
     'pragma' : 'no-cache',
     'priority' : 'u=1, i',
-    'referer' : 'https://www.icourse163.org/spoc/learn/HDU-1449913200?tid=1488420452',
+    'referer' : f'https://www.icourse163.org/spoc/learn/HDU-1449913200?tid={tid}',
 
     'sec-fetch-dest' : 'empty',
     'sec-fetch-mode' : 'cors',
     'sec-fetch-site' : 'cross-site',
+    'sec-fetch-storage-access' : 'active',
 
-    "system": "v1",
+    "system": "v1"
 
-
-
-    "timestamp":'',
-    'edu-script-token' : '',
-    'auth-signature' : '',
-    'cookie' : ''
+    # 'cookie' : ''
 }
 
-cookie = ''
-timestamp = ''
-token = 'bbae40aa592f4cc599dfe40a3f9f7469'
+# ---
 
 
 
-HEADERS['edu-script-token'] = token
-HEADERS['cookie'] = cookie
 
 
-
-# Auto-Signature
-
-def make_auth_headers(data: dict) -> dict:
-    """
-    对Auto-Signature的破解
+# 获取IP_Imformation 构造 payload
 
 
-    Auto-Signature = MD5( body + nonce[1000~9999不重复] + timestamp + SALT(已知) )
-    """
+current_random =  random.random()
+local_ip = What_Is_IP()
 
-    SALT = "fu2s2kxcswgn5hqanx7asmlogyr5wu29"
 
-    body = json.dumps( data, separators=(",", ":"), ensure_ascii = False )
-    nonce = str( random.randint(1000, 9999) ) # 没必要去重
-    timestamp = str(int(time.time() * 1000))
+PAYLOAD = {
+    'deviceName' : 'Chrome/144' ,
+    'dns' : '183.246.14.23' ,
+    'dnsCity' : '杭州市' ,
+    'dnsIsp' : '移动' ,
+    'dnsMsg' : '您的DNS设置正确' ,
+    'dnsProvince' : '浙江省' ,
+    'dnsRes' : 'correct' ,
+    'errorCode' : None ,
+    'errorMsg' : None,
+    'rate' : 1 ,
+    'source' : 'web' ,
 
-    raw = body + nonce + timestamp + SALT
-    sig = hashlib.md5(raw.encode("utf-8")).hexdigest().upper()
+    'currentKbps' : f'{int(current_random*10)}' ,
+    'preLoadTime' : f'{int(current_random*100)}' ,
+    'time' : int( time.time()*1000 ) ,
 
-    return {
+    'ip' : local_ip['data']['ip'] ,
+    'ipCity' : local_ip['data']['city'] ,
+    'ipIsp' : local_ip['data']['isp'] ,
+    'ipProvince' : local_ip['data']['prov'] ,
 
-        "Timestamp": timestamp,
-        "Nonce": nonce,
-        "Auth-Signature": sig
+}
 
-    }
+
+PAYLOAD['userId'] = f'{userId}'
+PAYLOAD['videoId'] = video_id
+# ---
+
 
 
 
 
 # 从AIcopy的标准post代码
+# 在经过人工“细看”
 
-def Decompress(body : bytes , encoding) -> bytes :
+def Decompress(body : bytes , encoding : str) -> bytes :
+    """
+    解码body
+    """
     if not body or not encoding :
         return body
     encoding = encoding.lower()
@@ -117,45 +126,72 @@ def Decompress(body : bytes , encoding) -> bytes :
             return zlib.decompress(body , -zlib.MAX_WBITS)
     return body
 
-def SendPost(url , payload = None , cookies = None , headers = None , timeout = 20 , verify = True) -> dict :
-    """发一次 POST,返回 {status, reason, headers, body, text}
+
+
+def send_post_of_heartBeat(url:str , payload = None , cookies = None , headers : dict = None , timeout = 20 , verify = True) -> dict :
+    """
+    发一次 POST,返回 {status, reason, headers, body, text}
+
     payload : dict/list -> 自动转 JSON ; str -> 原样发字符串 ; bytes -> 原样发 ; None -> 空 body
     cookies : dict -> 拼成 Cookie 头
     """
+
     headers = dict(headers or {})
     data = None
- 
+
+
+    # 加入 payload
     if isinstance(payload , (dict , list)) :
+
         data = json.dumps(payload , ensure_ascii = False).encode('utf-8')
         headers.setdefault('Content-Type' , 'application/json;charset=UTF-8')
+
+
     elif isinstance(payload , str) :
+
         data = payload.encode('utf-8')
         headers.setdefault('Content-Type' , 'application/x-www-form-urlencoded')
+
+
     elif isinstance(payload , bytes) :
+
         data = payload
+    
     # payload is None -> data 保持 None,urllib 会补 Content-Length: 0
- 
-    if cookies :
+
+
+
+    if type(cookies) == 'dict' : # 加入 cookie
         headers['Cookie'] = '; '.join(f'{k}={v}' for k , v in cookies.items())
- 
-    req = urllib.request.Request(url , data = data , method = 'POST')
-    # 直接赋 req.headers,避免 urllib 把键名首字母大写(User-Agent -> User-agent)
-    req.headers = headers
- 
+    
+    elif type(cookies) == 'str' :
+        headers['Cookie'] = cookies
+
+
+    # Send HeartBeat
+    req = urllib.request.Request(url , data = data , method = 'POST' , headers = headers )
+
+    # 可以直接赋 req.headers,避免 urllib 把键名首字母大写(User-Agent -> User-agent)
+    # why:会检测脚本
+    # req.headers = headers
+
+
+    # 处理 response
     ctx = ssl.create_default_context()
     if not verify :
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
- 
+
     try :
         resp = urllib.request.urlopen(req , timeout = timeout , context = ctx)
     except urllib.error.HTTPError as e :
         resp = e                                 # 4xx/5xx 也是响应,body 要照读
     except urllib.error.URLError as e :
         return {'status' : 0 , 'reason' : str(e.reason) , 'headers' : {} , 'body' : b'' , 'text' : ''}
- 
+
+
     with resp :
-        body = Decompress(resp.read() , resp.headers.get('Content-Encoding'))
+        body = Decompress( resp.read() , resp.headers.get('Content-Encoding') )
         return {
             'status' : resp.status ,
             'reason' : resp.reason ,
@@ -163,5 +199,21 @@ def SendPost(url , payload = None , cookies = None , headers = None , timeout = 
             'body' : body ,
             'text' : body.decode('utf-8' , 'replace') ,
         }
+# ---
 
 
+
+
+
+
+debug = 1
+RUN = 1
+
+if RUN or (  (__name__ != '__main__') and (not debug)  ) :
+
+    run_init()
+    URL = 'https://vod.study.163.com/submit/heartBeat'
+
+    ret = send_post_of_heartBeat(URL , PAYLOAD , cookie_sendheart , HEADERS )
+
+    print(ret)

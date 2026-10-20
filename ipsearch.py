@@ -1,3 +1,5 @@
+# ip的查找
+
 import time
 from dataclasses import dataclass
 from typing import Any, Type, TypeVar, cast
@@ -318,6 +320,7 @@ def What_Is_IP (search: str | list | None = None) -> dict :
     (除特殊标注,默认为 str ) // important
 
     search[ str | str : ip, bool : IsAutoPolling = True, int : SearchMaxTimes = 5 ]
+    if search == None , 则查询本地IP
 
     Args:
 
@@ -371,10 +374,6 @@ def What_Is_IP (search: str | list | None = None) -> dict :
 
 
 if __name__ == '__main__' :
-    pass
-
-
-
 
 
     # print(What_Is_IP()['data'])
@@ -382,3 +381,5 @@ if __name__ == '__main__' :
     # print(What_Is_IP()['data']['city'])
     # print(What_Is_IP()['data']['long_ip'])
     # 成功,就不测试缓存了 !! ><
+
+    pass
