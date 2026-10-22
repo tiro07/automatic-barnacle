@@ -182,10 +182,10 @@ def send_post_of_heartBeat(url:str , payload = None , cookies = None , headers :
 
 
 
-    if type(cookies) == 'dict' : # 加入 cookie
+    if isinstance(cookies , dict) : # 加入 cookie
         headers['Cookie'] = '; '.join(f'{k}={v}' for k , v in cookies.items())
     
-    elif type(cookies) == 'str' :
+    elif isinstance(cookies , str) :
         headers['Cookie'] = cookies
 
 
@@ -235,14 +235,26 @@ def send_post_of_heartBeat(url:str , payload = None , cookies = None , headers :
 
 
 
-debug = 1
-RUN = 1
+debug = 0 # debug模式 
+release = 0 # 是否为发布版本
 
-if RUN or (  (__name__ != '__main__') and (not debug)  ) :
+RUN = 0 # RUN模式 直接启动检测 （dangerous!!）
+
+if RUN or (  (__name__ != '__main__') and debug and (not release) ) :
+    """
+    启动条件：
+    1. RUN == 1
+    --- OR ---
+    1. 作为非主程序启动
+    2. debug == 1
+    3. release == 0
+    ------
+    作用：方便我调试
+    """
 
     run_init()
     URL = 'https://vod.study.163.com/submit/heartBeat'
 
-    ret = send_post_of_heartBeat(URL , PAYLOAD , cookie_sendheart , HEADERS )
+    ret = send_post_of_heartBeat(URL , PAYLOAD , cookie_sendheart , HEADERS , verify=False)
 
     print(ret)
