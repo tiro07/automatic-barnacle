@@ -11,14 +11,13 @@ from ipsearch import What_Is_IP
 
 
 noncelist = []
-s = 0
+
 def append_nonce (Min : int = 1000 , Max : int = 9999) -> int | None :
     """
     retuen a number between Min && Max which is not appear in the list 'noncelist'
     else retuen None
     """
-    global noncelist ,s
-    s+=1
+    global noncelist
 
     a = random.randint(Min,Max)
 
